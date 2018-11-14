@@ -1,0 +1,114 @@
+---
+title: "Лабораторная работа №4"
+author: "Тунин Николай"
+date: '4 ноября 2018 г '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Задание
+
+Пользуясь примером из лекции файл (5.0.R) проанализируйте данные о возрасте и физ. характеристиках молюсков
+
+```{r}
+data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/abalone/abalone.data", header=TRUE, sep=",")
+```
+
+### Summary
+
+```{r}
+summary(data)
+```
+
+### Colnames
+
+```{r}
+colnames(data)
+
+colnames(data) <- c("sex", "length", "diameter", "height", 
+                "whole_weight", "shucked_weight",
+                "viscera_weight", "shell_weight", "rings")
+
+colnames(data)
+```
+
+### Обработка данных
+
+```{r}
+data$sex <- factor(c("Female", "Infant", "Male")[data$sex])
+
+summary(data)
+```
+
+### Исследование данных
+
+```{r}
+par(mfrow=c(1,3))
+hist(data$diameter, main = "Диаметр, мм")
+hist(data$height, main = "Высота, мм")
+hist(data$whole_weight, main = "Полный вес, гр")
+```
+
+Видим ассиметрию https://en.wikipedia.org/wiki/Skewness и выбросы (от них нужно избавиться)
+
+### Визулизируем возможные зависимости
+
+```{r}
+par(mfrow=c(1,2)) 
+plot(data$diameter, data$whole_weight,'p',main = "Зависимость веса от диаметра")
+plot(data$height, data$whole_weight,'p',main = "Зависимость веса от высоты")
+```
+
+Хорошо видна зависимость, нужно её исследовать
+
+### Построим линейные модели, посмотрим их характеристики
+
+```{r}
+linear.model.1 <- lm (diameter ~ whole_weight, data=data)
+linear.model.1
+summary(linear.model.1)
+
+plot(linear.model.1)
+
+linear.model.2 <- lm (height ~ whole_weight, data=data)
+linear.model.2
+summary(linear.model.1)
+
+plot(linear.model.2)
+```
+
+### Избавимся от выборосов, построим ещё модели и проверим их
+
+```{r}
+data.noout <- data[data$height < 0.4,]
+linear.model.3 <- lm (height ~ whole_weight, data=data.noout)
+linear.model.3
+summary(linear.model.3)
+plot(data.noout$height, data.noout$whole_weight,'p',main = "Зависимость веса от высоты")
+```
+
+### Разделим массив данных на 2 случайные части и подгоним модель по первой части
+
+```{r}
+odds <- seq(1, nrow(data.noout), by=2)
+data.in <- data.noout[odds,]
+data.out <- data.noout[-odds,]
+
+linear.model.half <- lm (rings ~ . - length, data=data.in)
+summary (linear.model.half)
+```
+
+### Cпрогнозируем значения во второй части и проверим качесвто прогноза
+
+```{r}
+data.predict <- predict (linear.model.half)
+cor (data.in$length, data.predict)
+plot (data.in$length, data.predict)
+
+data.predict.out <- predict (linear.model.half, data.out)
+cor (data.out$length, data.predict.out)
+plot (data.out$length, data.predict.out)
+```
